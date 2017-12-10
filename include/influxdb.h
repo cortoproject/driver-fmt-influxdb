@@ -9,6 +9,7 @@
 
 #include <corto/corto.h>
 #include <driver/fmt/influxdb/_project.h>
+#include <corto/c/c.h>
 
 /* $header() */
 #ifdef __cplusplus

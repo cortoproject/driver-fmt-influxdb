@@ -1,4 +1,5 @@
 #include <driver/fmt/influxdb/influxdb.h>
+#include <corto/string.h>
 
 const uint32_t SEC_TO_NANOSEC = 1000000000;
 const corto_string TIMESTAMP_MEMBER = "timestamp";
@@ -13,7 +14,7 @@ typedef struct influxdbSer_t {
 corto_string influxdb_safeString(corto_string source)
 {
     /* Measurements and Tags names cannot contain non-espaced spaces */
-    return corto_replace(source, " ", "\\ ");
+    return strreplace(source, " ", "\\ ");
 }
 
 corto_int16 influxdb_serScalar(
@@ -167,12 +168,12 @@ corto_string influxdb_fromValue(corto_value *v) {
 
 /* Not supported */
 corto_int16 influxdb_toValue(corto_value *v, corto_string data) {
-    corto_seterr("conversion from influx to corto not supported");
+    corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
 corto_int16 influxdb_toObject(corto_object* o, corto_string s) {
-    corto_seterr("conversion from influx to corto not supported");
+    corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
@@ -198,7 +199,7 @@ corto_word influxdb_fromResult(corto_result *r) {
 }
 
 corto_int16 influxdb_toResult(corto_result *r, corto_string influx) {
-    corto_seterr("conversion from influx to corto not supported");
+    corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
@@ -210,7 +211,7 @@ corto_string influxdb_copy(corto_string data) {
     return corto_strdup(data);
 }
 
-int influxdbMain(int argc, char *argv[]) {
+int cortomain(int argc, char *argv[]) {
     CORTO_UNUSED(argc);
     CORTO_UNUSED(argv);
     return 0;
