@@ -125,7 +125,7 @@ int16_t influxdb_serObject(
 
     if (corto_instanceof(corto_interface_o, corto_typeof(o)) == true) {
         corto_member m = corto_interface_resolveMember(corto_typeof(o), TIMESTAMP_MEMBER);
-        if ((m != NULL) && (corto_instanceofType(corto_time_o, m->type) == true)) {
+        if ((m != NULL) && (corto_type_instanceof(corto_time_o, m->type) == true)) {
             corto_time *time_o = (corto_time*)CORTO_OFFSET(o, m->offset);
             if (time_o == NULL)
             {
