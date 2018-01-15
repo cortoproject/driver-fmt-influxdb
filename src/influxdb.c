@@ -175,8 +175,13 @@ int16_t influxdb_serItem(
     corto_value *info,
     void *userData)
 {
-    corto_member m = info->is.member.t;
     corto_type t = corto_value_typeof(info);
+    corto_member m = info->is.member.t;
+    corto_string id = corto_idof(m);
+
+    if (strcmp(TIMESTAMP_MEMBER, id) == 0) {
+        goto ignore;
+    }
 
     if ((t->kind == CORTO_COMPOSITE) || (t->kind == CORTO_COLLECTION)) {
         corto_fmt fmt = corto_fmt_lookup("text/json");
@@ -187,7 +192,7 @@ int16_t influxdb_serItem(
             if (data->fieldCount) {
                 corto_buffer_appendstr(&data->b, ",");
             }
-            corto_buffer_append(&data->b, "%s=\"%s\"", corto_idof(m), v);
+            corto_buffer_append(&data->b, "%s=\"%s\"", id, v);
             corto_dealloc(v);
         }
         data->fieldCount++;
@@ -197,6 +202,8 @@ int16_t influxdb_serItem(
         }
     }
 
+    return 0;
+ignore:
     return 0;
 error:
     return -1;
