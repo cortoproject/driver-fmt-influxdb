@@ -112,7 +112,7 @@ unsupported:
     return 0;
 }
 
-corto_int16 influxdb_serComposite(
+corto_int16 influxdb_serComplex(
     corto_walk_opt *walk,
     corto_value *info,
     void *userData)
@@ -128,7 +128,8 @@ corto_int16 influxdb_serComposite(
             goto error;
         }
     } else {
-        corto_warning("Unexpected serialize request for type [%d]", t->kind);
+        corto_throw("Unexpected serialize request for type [%d]", t->kind);
+        goto error;
     }
 
     return 0;
@@ -188,6 +189,7 @@ int16_t influxdb_serItem(
         char* json = (char*)fmt->fromValue(info);
         influxdbSer_t *data = userData;
         corto_string v = influxdb_safeString(json);
+        corto_dealloc(json);
         if (v) {
             if (data->fieldCount) {
                 corto_buffer_appendstr(&data->b, ",");
@@ -218,8 +220,8 @@ corto_string influxdb_fromValue(corto_value *v) {
     walk.access = CORTO_LOCAL|CORTO_PRIVATE;
     walk.accessKind = CORTO_NOT;
     walk.program[CORTO_PRIMITIVE] = influxdb_serScalar;
-    walk.program[CORTO_COMPOSITE] = influxdb_serComposite;
-    walk.program[CORTO_COLLECTION] = influxdb_serComposite;
+    walk.program[CORTO_COMPOSITE] = influxdb_serComplex;
+    walk.program[CORTO_COLLECTION] = influxdb_serComplex;
 
     walk.metaprogram[CORTO_OBJECT] = influxdb_serObject;
     walk.metaprogram[CORTO_MEMBER] = influxdb_serItem;
