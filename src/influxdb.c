@@ -37,6 +37,7 @@ corto_int16 influxdb_serScalar(
         }
     }
 
+
     /* Only serialize types supported by influxdb */
     switch(corto_primitive(t)->kind) {
     case CORTO_BOOLEAN:
@@ -111,6 +112,30 @@ unsupported:
     return 0;
 }
 
+corto_int16 influxdb_serComposite(
+    corto_walk_opt *walk,
+    corto_value *info,
+    void *userData)
+{
+    corto_type t = corto_value_typeof(info);
+
+    if (t->kind == CORTO_COMPOSITE) {
+        if (corto_walk_members(walk, info, userData)) {
+            goto error;
+        }
+    } else if (t->kind == CORTO_COLLECTION) {
+        if (corto_walk_elements(walk, info, userData)) {
+            goto error;
+        }
+    } else {
+        corto_warning("Unexpected serialize request for type [%d]", t->kind);
+    }
+
+    return 0;
+error:
+    return -1;
+}
+
 int16_t influxdb_serObject(
     corto_walk_opt *walk,
     corto_value *info,
@@ -123,6 +148,7 @@ int16_t influxdb_serObject(
         goto error;
     }
 
+    /* Specific handling for timestamp data */
     if (corto_instanceof(corto_interface_o, corto_typeof(o)) == true) {
         corto_member m = corto_interface_resolveMember(corto_typeof(o), TIMESTAMP_MEMBER);
         if ((m != NULL) && (corto_type_instanceof(corto_time_o, m->type) == true)) {
@@ -144,6 +170,38 @@ error:
     return -1;
 }
 
+int16_t influxdb_serItem(
+    corto_walk_opt *walk,
+    corto_value *info,
+    void *userData)
+{
+    corto_member m = info->is.member.t;
+    corto_type t = corto_value_typeof(info);
+
+    if ((t->kind == CORTO_COMPOSITE) || (t->kind == CORTO_COLLECTION)) {
+        corto_fmt fmt = corto_fmt_lookup("text/json");
+        char* json = (char*)fmt->fromValue(info);
+        influxdbSer_t *data = userData;
+        corto_string v = influxdb_safeString(json);
+        if (v) {
+            if (data->fieldCount) {
+                corto_buffer_appendstr(&data->b, ",");
+            }
+            corto_buffer_append(&data->b, "%s=\"%s\"", corto_idof(m), v);
+            corto_dealloc(v);
+        }
+        data->fieldCount++;
+    } else {
+        if (corto_walk_value(walk, info, userData)) {
+            goto error;
+        }
+    }
+
+    return 0;
+error:
+    return -1;
+}
+
 corto_string influxdb_fromValue(corto_value *v) {
     influxdbSer_t walkData = {CORTO_BUFFER_INIT, 0};
     corto_walk_opt walk;
@@ -152,8 +210,13 @@ corto_string influxdb_fromValue(corto_value *v) {
     /* Only serialize scalars */
     walk.access = CORTO_LOCAL|CORTO_PRIVATE;
     walk.accessKind = CORTO_NOT;
-    walk.metaprogram[CORTO_OBJECT] = influxdb_serObject;
     walk.program[CORTO_PRIMITIVE] = influxdb_serScalar;
+    walk.program[CORTO_COMPOSITE] = influxdb_serComposite;
+    walk.program[CORTO_COLLECTION] = influxdb_serComposite;
+
+    walk.metaprogram[CORTO_OBJECT] = influxdb_serObject;
+    walk.metaprogram[CORTO_MEMBER] = influxdb_serItem;
+    walk.metaprogram[CORTO_ELEMENT] = influxdb_serItem;
 
     if (v->kind == CORTO_OBJECT) {
         corto_object o = corto_value_objectof(v);
