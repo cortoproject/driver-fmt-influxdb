@@ -14,7 +14,18 @@ typedef struct influxdbSer_t {
 corto_string influxdb_safeString(corto_string source)
 {
     /* Measurements and Tags names cannot contain non-espaced spaces */
-    return strreplace(source, " ", "\\ ");
+    corto_buffer b = CORTO_BUFFER_INIT;
+    char *ptr, ch;
+    for (ptr = source; (ch = *ptr); ptr++) {
+        if (ch == ' ') {
+            corto_buffer_appendstr(&b, "\\ ");
+        } else {
+            corto_buffer_appendstrn(&b, ptr, 1);
+        }
+
+    }
+
+    return corto_buffer_str(&b);
 }
 
 corto_int16 influxdb_serScalar(
@@ -159,10 +170,9 @@ int16_t influxdb_serObject(
                 goto error;
             }
 
-            corto_string str = corto_asprintf(" %"PRIu64,
-                (uint64_t) time_o->sec * SEC_TO_NANOSEC + (uint64_t) time_o->nanosec);
-            corto_buffer_appendstr(&data->b, str);
-            corto_dealloc(str);
+            uint64_t ts = (uint64_t) time_o->sec * SEC_TO_NANOSEC +
+                (uint64_t) time_o->nanosec;
+            corto_buffer_append(&data->b, " %"PRIu64, ts);
         }
     }
 
