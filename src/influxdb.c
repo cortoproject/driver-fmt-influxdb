@@ -11,21 +11,17 @@ typedef struct influxdbSer_t {
     corto_uint32 fieldCount;
 } influxdbSer_t;
 
-corto_string influxdb_safeString(corto_string source)
-{
+void influxdb_safeString(corto_buffer *b, corto_string source) {
     /* Measurements and Tags names cannot contain non-espaced spaces */
-    corto_buffer b = CORTO_BUFFER_INIT;
     char *ptr, ch;
     for (ptr = source; (ch = *ptr); ptr++) {
         if (ch == ' ') {
-            corto_buffer_appendstr(&b, "\\ ");
+            corto_buffer_append(b, "\\ ");
         } else {
-            corto_buffer_appendstrn(&b, ptr, 1);
+            corto_buffer_appendstrn(b, ptr, 1);
         }
 
     }
-
-    return corto_buffer_str(&b);
 }
 
 corto_int16 influxdb_serScalar(
@@ -66,17 +62,10 @@ corto_int16 influxdb_serScalar(
     }
 
     if (info->kind == CORTO_MEMBER) {
-        corto_string v = influxdb_safeString(corto_idof(info->is.member.t));
-        if (v) {
-            corto_buffer_append(&data->b, "%s=", v);
-            corto_dealloc(v);
-        }
+        influxdb_safeString(&data->b, corto_idof(info->is.member.t));
     } else {
-        corto_string v = influxdb_safeString(corto_idof(o));
-        if (v) {
-            corto_buffer_append(&data->b, "%s=", v);
-            corto_dealloc(v);
-        }
+        influxdb_safeString(&data->b, corto_idof(o));
+        corto_buffer_appendstrn(&data->b, "=", 1);
     }
 
     switch(corto_primitive(t)->kind) {
@@ -198,15 +187,14 @@ int16_t influxdb_serItem(
         corto_fmt fmt = corto_fmt_lookup("text/json");
         char* json = (char*)fmt->fromValue(info);
         influxdbSer_t *data = userData;
-        corto_string v = influxdb_safeString(json);
-        corto_dealloc(json);
-        if (v) {
-            if (data->fieldCount) {
-                corto_buffer_appendstr(&data->b, ",");
-            }
-            corto_buffer_append(&data->b, "%s=\"%s\"", id, v);
-            corto_dealloc(v);
+        if (data->fieldCount) {
+            corto_buffer_appendstrn(&data->b, ",", 1);
         }
+        corto_buffer_appendstr(&data->b, id);
+        corto_buffer_appendstrn(&data->b, "=\"", 2);
+        influxdb_safeString(&data->b, json);
+        corto_buffer_appendstrn(&data->b, "\"", 1);
+        corto_dealloc(json);
         data->fieldCount++;
     } else {
         if (corto_walk_value(walk, info, userData)) {
