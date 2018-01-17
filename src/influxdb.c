@@ -1,5 +1,6 @@
 #include <driver/fmt/influxdb/influxdb.h>
 #include <corto/string.h>
+#include <stdlib.h>
 
 const uint32_t SEC_TO_NANOSEC = 1000000000;
 const corto_string TIMESTAMP_MEMBER = "timestamp";
@@ -16,7 +17,7 @@ void influxdb_safeString(corto_buffer *b, corto_string source) {
     char *ptr, ch;
     for (ptr = source; (ch = *ptr); ptr++) {
         if (ch == ' ') {
-            corto_buffer_append(b, "\\ ");
+            corto_buffer_appendstr(b, "\\ ");
         } else {
             corto_buffer_appendstrn(b, ptr, 1);
         }
@@ -65,14 +66,16 @@ corto_int16 influxdb_serScalar(
         influxdb_safeString(&data->b, corto_idof(info->is.member.t));
     } else {
         influxdb_safeString(&data->b, corto_idof(o));
-        corto_buffer_appendstrn(&data->b, "=", 1);
+        corto_buffer_appendstr(&data->b, "=");
     }
 
     switch(corto_primitive(t)->kind) {
     case CORTO_BOOLEAN:
-        corto_ptr_cast(t, ptr, corto_string_o, &str);
-        corto_buffer_appendstr(&data->b, str);
-        corto_dealloc(str);
+        if (*(corto_bool*)ptr == true) {
+            corto_buffer_appendstr(&data->b, "true");
+        } else {
+            corto_buffer_appendstr(&data->b, "false");
+        }
         break;
     case CORTO_INTEGER:
         corto_ptr_cast(t, ptr, corto_string_o, &str);
@@ -96,9 +99,11 @@ corto_int16 influxdb_serScalar(
         break;
     case CORTO_TEXT:
         if (*(corto_string*)ptr) {
-            corto_buffer_append(&data->b, "\"%s\"", *(corto_string*)ptr);
+            corto_buffer_appendstrn(&data->b, "\"", 1);
+            corto_buffer_appendstr(&data->b, *(corto_string*)ptr);
+            corto_buffer_appendstrn(&data->b, "\"", 1);
         } else {
-            corto_buffer_append(&data->b, "\"\"");
+            corto_buffer_appendstrn(&data->b, "\"\"", 2);
         }
         break;
     default:
@@ -161,7 +166,9 @@ int16_t influxdb_serObject(
 
             uint64_t ts = (uint64_t) time_o->sec * SEC_TO_NANOSEC +
                 (uint64_t) time_o->nanosec;
-            corto_buffer_append(&data->b, " %"PRIu64, ts);
+            char buffer[64];
+            corto_string timeStr = corto_ulltoa(ts, buffer, 10);
+            corto_buffer_appendstr(&data->b, timeStr);
         }
     }
 
