@@ -45,7 +45,6 @@ corto_int16 influxdb_serScalar(
         }
     }
 
-
     /* Only serialize types supported by influxdb */
     switch(corto_primitive(t)->kind) {
     case CORTO_BOOLEAN:
@@ -66,8 +65,8 @@ corto_int16 influxdb_serScalar(
         influxdb_safeString(&data->b, corto_idof(info->is.member.t));
     } else {
         influxdb_safeString(&data->b, corto_idof(o));
-        corto_buffer_appendstr(&data->b, "=");
     }
+    corto_buffer_appendstr(&data->b, "=");
 
     switch(corto_primitive(t)->kind) {
     case CORTO_BOOLEAN:
@@ -168,6 +167,7 @@ int16_t influxdb_serObject(
                 (uint64_t) time_o->nanosec;
             char buffer[64];
             corto_string timeStr = corto_ulltoa(ts, buffer, 10);
+            corto_buffer_appendstr(&data->b, " ");
             corto_buffer_appendstr(&data->b, timeStr);
         }
     }
