@@ -15,14 +15,22 @@ typedef struct influxdbSer_t {
 void influxdb_safeString(corto_buffer *b, corto_string source) {
     /* Measurements and Tags names cannot contain non-espaced spaces */
     char *ptr, ch;
+    char buff[512];
+    int pos = 0;
     for (ptr = source; (ch = *ptr); ptr++) {
         if (ch == ' ') {
-            corto_buffer_appendstr(b, "\\ ");
+            buff[pos] = '\\';
+            buff[pos+1] = ch;
+            pos++;
         } else {
-            corto_buffer_appendstrn(b, ptr, 1);
+            buff[pos] = ch;
         }
 
+        pos++;
     }
+
+    buff[pos] = '\0';
+    corto_buffer_appendstr(b, buff);
 }
 
 corto_int16 influxdb_serScalar(

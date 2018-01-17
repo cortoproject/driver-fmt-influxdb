@@ -34,6 +34,8 @@ void influxdb_release(corto_string data);
 
 corto_string influxdb_copy(corto_string data);
 
+void influxdb_safeString(corto_buffer *b, corto_string source);
+
 #ifdef __cplusplus
 }
 #endif
