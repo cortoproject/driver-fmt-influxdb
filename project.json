@@ -5,6 +5,9 @@
         "description" : "InfluxDB Line Protocol formatter for Corto",
         "version" : "1.3.0",
         "noapi": true,
-        "language": "c"
+        "language": "c",
+        "use": [
+            "tags"
+        ]
     }
 }

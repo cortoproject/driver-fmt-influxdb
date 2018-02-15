@@ -8,9 +8,10 @@
 #define DRIVER_FMT_INFLUXDB_H
 
 #include <corto/corto.h>
-#include <corto/corto.h>
 #include <driver/fmt/influxdb/_project.h>
+#include <tags/c/c.h>
 #include <corto/c/c.h>
+#include <tags/tags.h>
 
 /* $header() */
 #ifdef __cplusplus

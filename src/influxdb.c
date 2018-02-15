@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 const uint32_t SEC_TO_NANOSEC = 1000000000;
-const corto_string TIMESTAMP_MEMBER = "timestamp";
 const corto_string TIMESTAMP_SEC_MEMBER = "sec";
 const corto_string TIMESTAMP_NANOSEC_MEMBER = "nanosec";
 
@@ -46,9 +45,11 @@ corto_int16 influxdb_serScalar(
 
     /* Do not add timestamp members to the update buffer. sec and nanosec will
         be redundant */
+    ///TODO Verify this is still happening.
     if (info->kind == CORTO_MEMBER) {
         if ((strcmp(TIMESTAMP_SEC_MEMBER, corto_idof(info->is.member.t)) == 0) ||
             (strcmp(TIMESTAMP_NANOSEC_MEMBER, corto_idof(info->is.member.t)) == 0)) {
+            corto_error("Hit [%s]", corto_idof(info->is.member.t));
             goto unsupported;
         }
     }
@@ -162,22 +163,33 @@ int16_t influxdb_serObject(
     }
 
     /* Specific handling for timestamp data */
-    if (corto_instanceof(corto_interface_o, corto_typeof(o)) == true) {
-        corto_member m = corto_interface_resolveMember(corto_typeof(o), TIMESTAMP_MEMBER);
-        if ((m != NULL) && (corto_type_instanceof(corto_time_o, m->type) == true)) {
-            corto_time *time_o = (corto_time*)CORTO_OFFSET(o, m->offset);
-            if (time_o == NULL)
-            {
-                goto error;
-            }
+    corto_member m = corto_interface_resolveMemberByTag(
+        corto_typeof(o),
+        tags_time_last_modified_o);
+    if (!m) {
+        m = corto_interface_resolveMemberByTag(
+            corto_typeof(o),
+            tags_time_created_o);
+    }
+    if (!m) {
+        m = corto_interface_resolveMemberByTag(
+            corto_typeof(o),
+            tags_time_received_o);
+    }
 
-            uint64_t ts = (uint64_t) time_o->sec * SEC_TO_NANOSEC +
-                (uint64_t) time_o->nanosec;
-            char buffer[64];
-            corto_string timeStr = corto_ulltoa(ts, buffer, 10);
-            corto_buffer_appendstr(&data->b, " ");
-            corto_buffer_appendstr(&data->b, timeStr);
+    if (m && (corto_type_instanceof(corto_time_o, m->type))) {
+        corto_time *time_o = (corto_time*)CORTO_OFFSET(o, m->offset);
+        if (time_o == NULL)
+        {
+            goto error;
         }
+
+        uint64_t ts = (uint64_t) time_o->sec * SEC_TO_NANOSEC +
+            (uint64_t) time_o->nanosec;
+        char buffer[64];
+        corto_string timeStr = corto_ulltoa(ts, buffer, 10);
+        corto_buffer_appendstr(&data->b, " ");
+        corto_buffer_appendstr(&data->b, timeStr);
     }
 
     return 0;
@@ -194,8 +206,13 @@ int16_t influxdb_serItem(
     corto_member m = info->is.member.t;
     corto_string id = corto_idof(m);
 
-    if (strcmp(TIMESTAMP_MEMBER, id) == 0) {
-        goto ignore;
+    /* Avoid serializing timestamp data into datafields. */
+    if (corto_ll_count(m->tags)) {
+        if (corto_ll_hasObject(m->tags, tags_time_last_modified_o) ||
+            corto_ll_hasObject(m->tags, tags_time_created_o) ||
+            corto_ll_hasObject(m->tags, tags_time_received_o)) {
+            goto ignore;
+        }
     }
 
     if ((t->kind == CORTO_COMPOSITE) || (t->kind == CORTO_COLLECTION)) {
