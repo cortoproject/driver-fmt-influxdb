@@ -6,6 +6,7 @@
 #ifndef DRIVER_FMT_INFLUXDB_H
 #define DRIVER_FMT_INFLUXDB_H
 
+#include <corto/corto.h>
 #include <driver/fmt/influxdb/_project.h>
 #include <tags/c/c.h>
 #include <corto/c/c.h>

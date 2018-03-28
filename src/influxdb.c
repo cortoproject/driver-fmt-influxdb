@@ -219,7 +219,7 @@ int16_t influxdb_serItem(
 
     if ((t->kind == CORTO_COMPOSITE) || (t->kind == CORTO_COLLECTION)) {
         corto_fmt fmt = corto_fmt_lookup("text/json");
-        char* json = (char*)fmt->fromValue(info);
+        char* json = (char*)corto_fmt_from_value(fmt, NULL, info);
         influxdbSer_t *data = userData;
         if (data->fieldCount) {
             corto_buffer_appendstrn(&data->b, ",", 1);
