@@ -6,7 +6,6 @@
 #ifndef DRIVER_FMT_INFLUXDB_H
 #define DRIVER_FMT_INFLUXDB_H
 
-#include <corto/corto.h>
 #include <driver/fmt/influxdb/_project.h>
 #include <tags/c/c.h>
 #include <corto/c/c.h>
@@ -18,23 +17,44 @@ extern "C" {
 #endif
 
 /* Implements the line protocol used by InfluxDb */
-corto_string influxdb_fromValue(corto_value *v);
+corto_string influxdb_fromValue(
+    corto_fmt_opt* opt,
+    corto_value *v);
 
 /* Stub: line protocol is only used to store data in InfluxDb so this function
  * will never be used. */
-corto_int16 influxdb_toValue(corto_value *v, corto_string data);
+corto_int16 influxdb_toValue(
+    corto_fmt_opt* opt,
+    corto_value *v,
+    corto_string data);
 
-corto_int16 influxdb_toObject(corto_object* o, corto_string s);
-corto_string influxdb_fromObject(corto_object o);
+corto_int16 influxdb_toObject(
+    corto_fmt_opt* opt,
+    corto_object* o,
+    char *s);
 
-corto_word influxdb_fromResult(corto_result *r);
-corto_int16 influxdb_toResult(corto_result *r, corto_string influx);
+corto_string influxdb_fromObject(
+    corto_fmt_opt* opt,
+    corto_object o);
 
-void influxdb_release(corto_string data);
+corto_word influxdb_fromResult(
+    corto_fmt_opt* opt,
+    corto_record *r);
 
-corto_string influxdb_copy(corto_string data);
+corto_int16 influxdb_toResult(
+    corto_fmt_opt* opt,
+    corto_record *r,
+    char *influx);
 
-void influxdb_safeString(corto_buffer *b, corto_string source);
+void influxdb_release(
+    char *data);
+
+corto_string influxdb_copy(
+    char *data);
+
+void influxdb_safeString(
+    corto_buffer *b,
+    corto_string source);
 
 #ifdef __cplusplus
 }
@@ -46,4 +66,3 @@ void influxdb_safeString(corto_buffer *b, corto_string source);
 /* $end */
 
 #endif
-

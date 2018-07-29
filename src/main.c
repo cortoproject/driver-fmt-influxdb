@@ -11,7 +11,9 @@ typedef struct influxdbSer_t {
     corto_uint32 fieldCount;
 } influxdbSer_t;
 
-void influxdb_safeString(corto_buffer *b, corto_string source) {
+void influxdb_safeString(
+    corto_buffer *b,
+    corto_string source) {
     /* Measurements and Tags names cannot contain non-espaced spaces */
     char *ptr, ch;
     char buff[512];
@@ -47,9 +49,9 @@ corto_int16 influxdb_serScalar(
         be redundant */
     ///TODO Verify this is still happening.
     if (info->kind == CORTO_MEMBER) {
-        if ((strcmp(TIMESTAMP_SEC_MEMBER, corto_idof(info->is.member.t)) == 0) ||
-            (strcmp(TIMESTAMP_NANOSEC_MEMBER, corto_idof(info->is.member.t)) == 0)) {
-            corto_error("Hit [%s]", corto_idof(info->is.member.t));
+        if ((strcmp(TIMESTAMP_SEC_MEMBER, corto_idof(info->is.member.member)) == 0) ||
+            (strcmp(TIMESTAMP_NANOSEC_MEMBER, corto_idof(info->is.member.member)) == 0)) {
+            corto_error("Hit [%s]", corto_idof(info->is.member.member));
             goto unsupported;
         }
     }
@@ -71,7 +73,7 @@ corto_int16 influxdb_serScalar(
     }
 
     if (info->kind == CORTO_MEMBER) {
-        influxdb_safeString(&data->b, corto_idof(info->is.member.t));
+        influxdb_safeString(&data->b, corto_idof(info->is.member.member));
     } else {
         influxdb_safeString(&data->b, corto_idof(o));
     }
@@ -164,16 +166,16 @@ int16_t influxdb_serObject(
 
     /* Specific handling for timestamp data */
     if (corto_type_instanceof(corto_interface_o, corto_typeof(o))) {
-        corto_member m = corto_interface_resolveMemberByTag(
+        corto_member m = corto_interface_resolve_member_by_tag(
             corto_typeof(o),
             tags_time_last_modified_o);
         if (!m) {
-            m = corto_interface_resolveMemberByTag(
+            m = corto_interface_resolve_member_by_tag(
                 corto_typeof(o),
                 tags_time_created_o);
         }
         if (!m) {
-            m = corto_interface_resolveMemberByTag(
+            m = corto_interface_resolve_member_by_tag(
                 corto_typeof(o),
                 tags_time_received_o);
         }
@@ -205,7 +207,7 @@ int16_t influxdb_serItem(
     void *userData)
 {
     corto_type t = corto_value_typeof(info);
-    corto_member m = info->is.member.t;
+    corto_member m = info->is.member.member;
     corto_string id = corto_idof(m);
 
     /* Avoid serializing timestamp data into datafields. */
@@ -243,7 +245,10 @@ error:
     return -1;
 }
 
-corto_string influxdb_fromValue(corto_value *v) {
+corto_string influxdb_fromValue(
+    corto_fmt_opt* opt,
+    corto_value *v)
+{
     influxdbSer_t walkData = {CORTO_BUFFER_INIT, 0};
     corto_walk_opt walk;
     corto_walk_init(&walk);
@@ -271,17 +276,28 @@ corto_string influxdb_fromValue(corto_value *v) {
 }
 
 /* Not supported */
-corto_int16 influxdb_toValue(corto_value *v, corto_string data) {
+corto_int16 influxdb_toValue(
+    corto_fmt_opt* opt,
+    corto_value *v,
+    corto_string data)
+{
     corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
-corto_int16 influxdb_toObject(corto_object* o, corto_string s) {
+corto_int16 influxdb_toObject(
+    corto_fmt_opt* opt,
+    corto_object* o,
+    corto_string s)
+{
     corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
-corto_string influxdb_fromObject(corto_object o) {
+corto_string influxdb_fromObject(
+    corto_fmt_opt* opt,
+    corto_object o)
+{
     influxdbSer_t walkData = {CORTO_BUFFER_INIT, 0};
     corto_walk_opt walk;
     corto_walk_init(&walk);
@@ -297,21 +313,30 @@ corto_string influxdb_fromObject(corto_object o) {
     return corto_buffer_str(&walkData.b);
 }
 
-corto_word influxdb_fromResult(corto_result *r) {
+corto_word influxdb_fromResult(
+    corto_fmt_opt* opt,
+    corto_record *r)
+{
     CORTO_UNUSED(r);
     return 0;
 }
 
-corto_int16 influxdb_toResult(corto_result *r, corto_string influx) {
+corto_int16 influxdb_toResult(
+    corto_fmt_opt* opt,
+    corto_record *r,
+    char *influx)
+{
     corto_throw("conversion from influx to corto not supported");
     return -1;
 }
 
-void influxdb_release(corto_string data) {
+void influxdb_release(
+    char *data) {
     corto_dealloc(data);
 }
 
-corto_string influxdb_copy(corto_string data) {
+corto_string influxdb_copy(
+    char *data) {
     return corto_strdup(data);
 }
 
