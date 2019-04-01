@@ -48,6 +48,7 @@ corto_int16 influxdb_serScalar(
     /* Do not add timestamp members to the update buffer. sec and nanosec will
         be redundant */
     ///TODO Verify this is still happening.
+
     if (info->kind == CORTO_MEMBER) {
         if ((strcmp(TIMESTAMP_SEC_MEMBER, corto_idof(info->is.member.member)) == 0) ||
             (strcmp(TIMESTAMP_NANOSEC_MEMBER, corto_idof(info->is.member.member)) == 0)) {
@@ -63,6 +64,7 @@ corto_int16 influxdb_serScalar(
     case CORTO_UINTEGER:
     case CORTO_FLOAT:
     case CORTO_TEXT:
+    case CORTO_ENUM:
         break;
     default:
         goto unsupported;
@@ -115,6 +117,13 @@ corto_int16 influxdb_serScalar(
         } else {
             corto_buffer_appendstrn(&data->b, "\"\"", 2);
         }
+        break;
+    case CORTO_ENUM:
+        corto_buffer_appendstrn(&data->b, "\"", 1);
+        corto_ptr_cast(t, ptr, corto_string_o, &str);
+        corto_buffer_appendstr(&data->b, str);
+        corto_dealloc(str);
+        corto_buffer_appendstrn(&data->b, "\"", 1);
         break;
     default:
         corto_assert(0, "unreachable code");
